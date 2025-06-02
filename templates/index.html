@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migration Analysis Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; color: #333;
+    }
+    .navbar {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      padding: 1rem 2rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      position: sticky; top: 0; z-index: 1000;
+    }
+    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.5rem; font-weight: bold; color: #4a5568; }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-link {
+      padding: 0.5rem 1rem; border: none; background: none; cursor: pointer;
+      font-size: 1rem; color: #4a5568; border-radius: 8px; transition: all 0.3s ease;
+    }
+    .nav-link:hover { background: rgba(102, 126, 234, 0.1); color: #667eea; }
+    .nav-link.active { background: #667eea; color: white; }
+    .main-content { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+    .page {
+      display: none; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      border-radius: 20px; padding: 2rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .page-title { font-size: 2rem; margin-bottom: 2rem; color: #2d3748; text-align: center; }
+    .map-container { position: relative; margin-bottom: 2rem; text-align: center; }
+    .map-image {
+      max-width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease;
+    }
+    .map-image:hover { transform: scale(1.02); }
+    .map-error {
+      width: 100%; height: 500px; border: 2px solid #e2e8f0; border-radius: 12px;
+      background: #f7fafc; display: flex; align-items: center; justify-content: center;
+      color: #718096; font-size: 1.1rem;
+    }
+    .controls { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; align-items: center; }
+    .control-group { display: flex; flex-direction: column; gap: 0.5rem; min-width: 200px; }
+    .control-label { font-weight: 600; color: #4a5568; font-size: 0.9rem; }
+    select, input[type="range"] {
+      padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;
+      font-size: 1rem; transition: all 0.3s ease;
+    }
+    select:focus, input[type="range"]:focus {
+      outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .info-box {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;
+      padding: 1.5rem; border-radius: 12px; margin-top: 1rem;
+      box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+    }
+    .prediction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; }
+    .prediction-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+      padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    .slider-container { display: flex; flex-direction: column; gap: 0.5rem; }
+    .slider-value { font-weight: bold; color: #667eea; text-align: center; }
+    input[type="range"] {
+      -webkit-appearance: none; height: 8px;
+      background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px; background: white;
+      border-radius: 50%; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); cursor: pointer;
+    }
+    .toggle-container { display: flex; align-items: center; gap: 1rem; }
+    .toggle { position: relative; width: 60px; height: 30px; background: #e2e8f0; border-radius: 15px; cursor: pointer; transition: all 0.3s ease; }
+    .toggle.active { background: #667eea; }
+    .toggle-handle {
+      position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; background: white; border-radius: 50%;
+      transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .toggle.active .toggle-handle { transform: translateX(30px); }
+    .error-message { background: #fed7d7; color: #c53030; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #feb2b2; }
+    .loading { text-align: center; color: #667eea; font-size: 1.1rem; padding: 2rem; }
+    .map-legend {
+      background: rgba(255, 255, 255, 0.9); padding: 1rem; border-radius: 8px;
+      margin-top: 1rem; font-size: 0.9rem; text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">Migration Analysis</div>
+      <div class="nav-links">
+        <button class="nav-link active" onclick="showPage('world-map')">World Map</button>
+        <button class="nav-link" onclick="showPage('predictions')">Predictions</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <!-- World Map Page -->
+    <div id="world-map" class="page active">
+      <h1 class="page-title">Migration Impact World Map</h1>
+      
+      <div class="map-container">
+        <!-- Load impact.png from /static/impact.png -->
+        <img
+          id="worldMapImage"
+          src="/static/impact.png"
+          alt="Migration Impact World Map"
+          class="map-image"
+          onerror="this.style.display='none'; document.getElementById('mapError').style.display='flex';"
+        />
+        <div id="mapError" class="map-error" style="display: none;">
+          Unable to load impact.png – make sure it’s in <code>/static/impact.png</code>.
+        </div>
+      </div>
+      
+      <div class="map-legend">
+        <strong>Migration Impact Visualization</strong><br>
+        This map shows the predicted impact of water-trigger events on migration patterns across different countries.
+      </div>
+      
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label">Select Country:</label>
+          <select id="countrySelect">
+            <option value="">Choose a country...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="countryInfo" class="info-box" style="display: none;"></div>
+    </div>
+
+    <!-- Predictions Page -->
+    <div id="predictions" class="page">
+      <h1 class="page-title">Migration Predictions</h1>
+      
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label">Select Country:</label>
+          <select id="predictionCountrySelect">
+            <option value="">Choose a country...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="prediction-grid">
+        <div class="prediction-card">
+          <h3>Economic Factors</h3>
+          <div class="slider-container">
+            <label>GDP per Capita: <span id="gdpValue" class="slider-value">1000</span></label>
+            <input type="range" id="gdpSlider" min="100" max="120000" step="100" value="1000"/>
+          </div>
+          
+          <div class="slider-container">
+            <label>Agricultural Water Usage (%): <span id="agriWaterValue" class="slider-value">0</span></label>
+            <input type="range" id="agriWaterSlider" min="0" max="100" step="1" value="0"/>
+          </div>
+        </div>
+        
+        <div class="prediction-card">
+          <h3>Water Resources</h3>
+          <div class="slider-container">
+            <label>Water Stress: <span id="waterStressValue" class="slider-value">0</span></label>
+            <input type="range" id="waterStressSlider" min="0" max="5" step="0.1" value="0"/>
+          </div>
+          
+          <div class="slider-container">
+            <label>Water Resources per Capita: <span id="waterResourcesValue" class="slider-value">100</span></label>
+            <input type="range" id="waterResourcesSlider" min="10" max="10000" step="10" value="100"/>
+          </div>
+        </div>
+        
+        <div class="prediction-card">
+          <h3>Development & Events</h3>
+          <div class="slider-container">
+            <label>HDI: <span id="hdiValue" class="slider-value">0</span></label>
+            <input type="range" id="hdiSlider" min="0" max="1" step="0.01" value="0"/>
+          </div>
+          
+          <div class="toggle-container">
+            <label>Water-trigger Event:</label>
+            <div class="toggle" id="eventToggle" onclick="toggleEvent()">
+              <div class="toggle-handle"></div>
+            </div>
+            <span id="eventStatus">No</span>
+          </div>
+          
+          <div class="slider-container" style="margin-top:1rem;">
+            <label>Agriculture Contribution to GDP (%): <span id="agrGDPValue" class="slider-value">0</span></label>
+            <input type="range" id="agrGDPSlider" min="0" max="100" step="1" value="0"/>
+          </div>
+        </div>
+      </div>
+      
+      <div id="predictionResult" class="info-box" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- Load PapaParse from /static/papaparse.min.js -->
+  <script src="/static/papaparse.min.js"></script>
+  <script>
+    // Global variables
+    let eventImpactData = [];
+    let currentPredictionInputs = {};
+
+    // Load CSV data (only EventImpact.csv) and populate both dropdowns alphabetically
+    async function loadCSVData() {
+      try {
+        const eventText = await fetch('/static/EventImpact.csv').then(r => r.text());
+        eventImpactData = Papa.parse(eventText, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true
+        }).data;
+
+        eventImpactData = eventImpactData
+          .map(row => {
+            const clean = {};
+            Object.keys(row).forEach(key => { clean[key.trim()] = row[key]; });
+            return clean;
+          })
+          .filter(row => row.Area && row.Area.trim() !== '')
+          .sort((a, b) => a.Area.localeCompare(b.Area));
+
+        populateCountryDropdowns();
+      } catch (err) {
+        console.error('Error loading EventImpact.csv:', err);
+        const errDiv = document.createElement('div');
+        errDiv.className = 'error-message';
+        errDiv.textContent = 'Error loading EventImpact.csv. Ensure it is in /static/.';
+        document.querySelector('.main-content').prepend(errDiv);
+      }
+    }
+
+    function populateCountryDropdowns() {
+      const worldSelect = document.getElementById('countrySelect');
+      const predSelect = document.getElementById('predictionCountrySelect');
+      worldSelect.innerHTML = '<option value="">Choose a country...</option>';
+      predSelect.innerHTML = '<option value="">Choose a country...</option>';
+      eventImpactData.forEach(item => {
+        const opt1 = document.createElement('option');
+        opt1.value = item.Area;
+        opt1.textContent = item.Area;
+        worldSelect.appendChild(opt1);
+        const opt2 = document.createElement('option');
+        opt2.value = item.Area;
+        opt2.textContent = item.Area;
+        predSelect.appendChild(opt2);
+      });
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function showCountryInfo(countryName) {
+      const data = eventImpactData.find(r => r.Area === countryName);
+      const infoBox = document.getElementById('countryInfo');
+      if (data) {
+        const gdp = Math.exp(data.log_GDPpC).toFixed(0);
+        const wr = Math.exp(data.log_TIRWRpC).toFixed(0);
+        const dir = (data.pred1 - data.pred) > 0 ? 'increase' : 'decrease';
+        const mag = Math.abs(data.pred1 - data.pred).toFixed(0);
+        infoBox.innerHTML = `
+          <strong>${countryName} Migration Analysis</strong><br><br>
+          ${countryName} has a GDP per capita of \$${gdp},a log water stress level of ${data.Water_Stress.toFixed(2)},<br>
+          and internal renewable water resources per capita of ${wr} million litres.<br><br>
+          The simulation resulted in the following results:
+          Without a water-related trigger event, there are ${data.pred.toFixed(0).toLocaleString()} predicted emigrants;<br>
+          With a water-related trigger event, there are ${data.pred1.toFixed(0).toLocaleString()} predicted emigrants.<br><br>
+          Thus, a water-trigger event would <strong>${dir}</strong> migration by ${mag.toLocaleString()} people.
+          ${dir === 'decrease' ? ' (Entrapment effect.)' : ''}
+        `;
+        infoBox.style.display = 'block';
+      } else {
+        infoBox.style.display = 'none';
+      }
+    }
+
+    function initializePredictionControls() {
+      const sliders = ['gdp', 'agriWater', 'waterStress', 'waterResources', 'hdi', 'agrGDP'];
+      sliders.forEach(s => {
+        const sliderEl = document.getElementById(s + 'Slider');
+        const valueEl = document.getElementById(s + 'Value');
+        sliderEl.addEventListener('input', () => {
+          valueEl.textContent = sliderEl.value;
+          updatePrediction();
+        });
+      });
+    }
+
+    function toggleEvent() {
+      const toggleEl = document.getElementById('eventToggle');
+      const statusEl = document.getElementById('eventStatus');
+      toggleEl.classList.toggle('active');
+      statusEl.textContent = toggleEl.classList.contains('active') ? 'Yes' : 'No';
+      updatePrediction();
+    }
+
+    async function updatePrediction() {
+      const country = document.getElementById('predictionCountrySelect').value;
+      if (!country) return;
+
+      const gdpLinear = parseFloat(document.getElementById('gdpSlider').value);
+      const wrLinear = parseFloat(document.getElementById('waterResourcesSlider').value);
+
+      currentPredictionInputs = {
+        log_GDPpC: Math.log(gdpLinear),
+        Water_Stress: parseFloat(document.getElementById('waterStressSlider').value),
+        log_TIRWRpC: Math.log(wrLinear),
+        Agri: parseFloat(document.getElementById('agriWaterSlider').value),
+        agr_GDP: parseFloat(document.getElementById('agrGDPSlider').value),
+        HDI: parseFloat(document.getElementById('hdiSlider').value),
+        bEvents: document.getElementById('eventToggle').classList.contains('active') ? 1 : 0,
+        Area: country
+      };
+
+      try {
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentPredictionInputs)
+        });
+        const result = await response.json();
+        if (response.ok) {
+          displayPrediction(country, result.prediction);
+        } else {
+          displayPredictionError(result.error || 'Prediction error');
+        }
+      } catch (err) {
+        console.error('Prediction fetch error:', err);
+        displayPredictionError('Unable to reach server.');
+      }
+    }
+
+    function displayPrediction(country, prediction) {
+      const resultBox = document.getElementById('predictionResult');
+      resultBox.innerHTML = `
+        <strong>Prediction for ${country}</strong><br><br>
+        <strong>Predicted Migration:</strong> ${Number(prediction).toFixed(0).toLocaleString()} people<br><br>
+        <strong>Inputs:</strong><br>
+        • GDP per Capita: ${Math.exp(currentPredictionInputs.log_GDPpC).toFixed(2)}<br>
+        • Agricultural Water Usage (%): ${currentPredictionInputs.Agri}<br>
+        • Water Stress Level: ${currentPredictionInputs.Water_Stress.toFixed(2)}<br>
+        • Total Internal Renewable Water Resources per Capita: ${Math.exp(currentPredictionInputs.log_TIRWRpC).toFixed(2)}<br>
+        • HDI: ${currentPredictionInputs.HDI}<br>
+        • Water-trigger Event: ${currentPredictionInputs.bEvents ? 'Yes' : 'No'}<br>
+        • Agriculture Contribution to GDP (%): ${currentPredictionInputs.agr_GDP}
+      `;
+      resultBox.style.display = 'block';
+    }
+
+    function displayPredictionError(message) {
+      const resultBox = document.getElementById('predictionResult');
+      resultBox.innerHTML = `<strong>Error:</strong> ${message}`;
+      resultBox.style.display = 'block';
+    }
+
+    document.getElementById('countrySelect').addEventListener('change', function() {
+      showCountryInfo(this.value);
+    });
+
+    document.getElementById('predictionCountrySelect').addEventListener('change', function() {
+      const selected = this.value;
+      const data = eventImpactData.find(r => r.Area === selected);
+      if (data) {
+        // Set sliders to eventImpactData values (convert log to linear for GDP & water resources)
+        const gdpLin = Math.exp(data.log_GDPpC);
+        document.getElementById('gdpSlider').value = gdpLin;
+        document.getElementById('gdpValue').textContent = gdpLin.toFixed(0);
+
+        document.getElementById('agriWaterSlider').value = data.Agri;
+        document.getElementById('agriWaterValue').textContent = data.Agri;
+
+        document.getElementById('waterStressSlider').value = data.Water_Stress;
+        document.getElementById('waterStressValue').textContent = data.Water_Stress.toFixed(1);
+
+        const wrLin = Math.exp(data.log_TIRWRpC);
+        document.getElementById('waterResourcesSlider').value = wrLin;
+        document.getElementById('waterResourcesValue').textContent = wrLin.toFixed(0);
+
+        document.getElementById('hdiSlider').value = data.HDI;
+        document.getElementById('hdiValue').textContent = data.HDI.toFixed(2);
+
+        // bEvents toggle
+        const toggle = document.getElementById('eventToggle');
+        const status = document.getElementById('eventStatus');
+        if (data.bEvents) {
+          toggle.classList.add('active');
+          status.textContent = 'Yes';
+        } else {
+          toggle.classList.remove('active');
+          status.textContent = 'No';
+        }
+
+        // agr_GDP slider
+        document.getElementById('agrGDPSlider').value = data.agr_GDP;
+        document.getElementById('agrGDPValue').textContent = data.agr_GDP;
+
+        // Trigger prediction with initial values
+        updatePrediction();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initializePredictionControls();
+      loadCSVData();
+    });
+  </script>
+</body>
+</html>
