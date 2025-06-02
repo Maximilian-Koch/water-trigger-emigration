@@ -6,17 +6,13 @@ import os
 
 app = Flask(__name__)
 
-bst = gpb.Booster(model_file='C://Users//maxko//study//CSSci - Semester 4//Group project//website2//static/Main_Model.json')
+bst = gpb.Booster(model_file='//static/Main_Model.json')
 
-area_map_df = pd.read_csv('C://Users//maxko//study//CSSci - Semester 4//Group project//website2//static//area_id.csv')
+area_map_df = pd.read_csv('//static//area_id.csv')
 area_map = dict(zip(area_map_df["Area"], area_map_df["panel_id"]))
 
 @app.route("/")
 def index():
-    """
-    Serve the main dashboard page (index.html) from the /templates folder.
-    All static files (CSV, JS, images) live under /static.
-    """
     return render_template("index.html")
 
 
