@@ -5,10 +5,11 @@ import numpy as np
 import os
 
 app = Flask(__name__)
+MODEL_PATH = os.path.join(app.root_path, 'static', 'Main_Model.json')
+AREA_MAP_PATH = os.path.join(app.root_path, 'static', 'area_id.csv')
 
-bst = gpb.Booster(model_file='//static/Main_Model.json')
-
-area_map_df = pd.read_csv('//static//area_id.csv')
+bst = gpb.Booster(model_file=MODEL_PATH)
+area_map_df = pd.read_csv(AREA_MAP_PATH)
 area_map = dict(zip(area_map_df["Area"], area_map_df["panel_id"]))
 
 @app.route("/")
