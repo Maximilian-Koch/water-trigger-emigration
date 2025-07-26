@@ -29,7 +29,7 @@ The report was part of a group assignment during semester 4 of my bachelor in Co
 - **Policy Implications:** Technical metrics (e.g., SDG 6.4.2) must be complemented by equity‑centered, context‑sensitive governance to avoid reproducing displacement drivers.
 
 
-![Migration map] (https://github.com/Maximilian-Koch/water-trigger-emigration/blob/main/analysis/migration_map.png?raw=true)
+![Migration map](https://github.com/Maximilian-Koch/water-trigger-emigration/blob/main/analysis/migration_map.png?raw=true)
 
 ## Repository Contents
 - `analysis/` – Data, analysis, and auditing
