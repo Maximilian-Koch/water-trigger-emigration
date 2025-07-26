@@ -21,14 +21,13 @@ def index():
 def predict():
     data = request.get_json(force=True)
 
-    # 1) Extract the selected area
     area = data.get("Area", "")
     if area not in area_map:
         return jsonify({"error": f"Area '{area}' not found in area_id.csv"}), 400
 
     panel_id = int(area_map[area])
 
-    # 2) Build the feature array for GPBoost: shape (1, 6)
+    #feature array for GP Boost
     try:
         features = np.array([[data['log_GDPpC'],data['Water_Stress'],
         data['log_TIRWRpC'],data['Agri'],
